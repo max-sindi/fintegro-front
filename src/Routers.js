@@ -9,7 +9,6 @@ class Routers extends Component {
       <Router>
         <Switch>
           <Route exact path="/" component={Pages.Home} />
-          <Route exact path="/login" component={Pages.Login} />
         </Switch>
       </Router>
     );

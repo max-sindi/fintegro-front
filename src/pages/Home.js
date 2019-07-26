@@ -1,72 +1,92 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import { upCounter, upCounterInObject, setValue, changeFormValue, sendForm } from '../redux/actions/initialActions';
+import React, { Component } from 'react'
+import {Card, Container, Switch, Typography} from "@material-ui/core"
+import AutocompleteBlockInLiveFetchingMode from '../components/AutocompleteBlockInLiveFetchingMode'
+import AutocompleteBlockInCachedMode from '../components/AutocompleteBlockInCachedMode'
+import Form from '../components/Form'
+import {api} from "../config"
+import axios from 'axios'
+
+const st = {
+  background: {
+    minHeight: '100vh',
+    paddingTop: 30,
+    boxSizing: 'border-box',
+    backgroundImage: 'linear-gradient(to right,#83cff3,#ebf8e1)',
+  },
+  container: {
+    margin: '0 auto',
+    maxWidth: 1200,
+    width: '100%',
+  },
+  card: {
+    position: 'relative',
+    padding: '100px 30px 200px 30px',
+    borderRadius: 20,
+    overflow: 'visible',
+    border: 0
+  },
+  modeSwitcher: {
+    position: 'absolute',
+    right: 20,
+    top: 20
+  }
+}
 
 class Home extends Component {
-
   state = {
-    form: {
-      title: 'qwe',
-      body: 'ewq',
-    }
+    isLiveFetchingMode: true,
+    firstValue: null,
+    secondValue: null
   }
 
-  sendForm = () => {
-    this.props.sendForm(this.state.form)
-  }
+  onFirstSelectChange = e => this.setState({firstValue: e, secondValue: null})
 
-  callSetValue = value => {
-    this.props.setValue(value)
-  }
+  onSecondSelectChange = e => this.setState({secondValue: e})
 
-  changeForm = e => {
-    const { name, value } = e.target
-    this.setState( state => {
-      return {
-        ...state,
-        form: {
-          ...state.form,
-          [name]: value
-        }
-      }
-    })
-    // this.prop({ name, value })
+  switchChangeHandler = () => this.setState(st => ({isLiveFetchingMode: !st.isLiveFetchingMode}))
+
+  sendFeedback = data => {
+    const dataToSend = {...data, subEntities: this.state.secondValue.map(i => i.value)}
+    axios.post( api.leaveFeedback(this.state.firstValue.value), dataToSend)
+      .then(() => console.log('success!!1!!1'))
+      .catch(err => console.error(err))
   }
 
   render() {
-    const { title, body } = this.state.form
-    // debugger
+    const {isLiveFetchingMode, firstValue, secondValue} = this.state
+    const dataToAutoComplete = {
+      firstValue: firstValue,
+      secondValue: secondValue,
+      onFirstSelectChange: this.onFirstSelectChange,
+      onSecondSelectChange: this.onSecondSelectChange,
+      apiEntitiesList: api.getEntitiesList,
+      apiEntityDetail: api.getEntityDetail
+    }
+
     return (
-      <div>
-        <div>{this.props.counter}</div>
-        <input name="title" value={title} onChange={this.changeForm} />
-        <input name="body" value={body} onChange={this.changeForm} />
-        <button onClick={this.sendForm}></button>
-          {/*// <button onClick={this.props.upCounter}>
-          //   asdas
-          // </button>
-          // <div>{this.props.counterInObject}</div>
-          // <button onDoubleClick={this.props.upCounterInObject}>
-          //   azaz
-          // </button>
-          //
-          // <button onClick={() => this.callSetValue(5) }>5</button>
-          // <button onClick={() => this.callSetValue(999) }>999</button>
-          // <button onClick={() => this.callSetValue(10) }>10</button>
-          // <div>{this.props.value}</div>*/}
+      <div style={st.background}>
+        <Container style={st.container}>
+          <Card style={st.card}>
+            <div style={st.modeSwitcher}>
+              <div>
+                <Typography>Now in {isLiveFetchingMode ? 'Fetching' : 'Cached'} mode</Typography>
+              </div>
+              <Switch checked={this.state.isLiveFetchingMode} onChange={this.switchChangeHandler}/>
+            </div>
+            <div style={st.formWrapper}>
+              {isLiveFetchingMode
+                ? <AutocompleteBlockInLiveFetchingMode {...dataToAutoComplete}/>
+                : <AutocompleteBlockInCachedMode {...dataToAutoComplete}/>
+              }
+              {firstValue && secondValue && secondValue.length > 0 && (
+                <Form onSubmitHandler={this.sendFeedback}/>
+              )}
+            </div>
+          </Card>
+        </Container>
       </div>
     );
   }
-
 }
 
-export default connect(
-  state => ({
-    counter: state.counter.counterRR,
-    counterInObject: state.counter.counterAsObject.counterInObject,
-    value: state.counter.currentValue,
-    form: state.counter.form,
-
-  }),
-  { upCounter, upCounterInObject, setValue, changeFormValue, sendForm }
-)(Home);
+export default Home
